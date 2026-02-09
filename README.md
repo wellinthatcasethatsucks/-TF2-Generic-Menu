@@ -2,7 +2,7 @@
 
 This plugin is meant for simple way to create sourcemod menus. I struggled to find a way myself, now that i know a bit i want to show others how to do it.
 
-This is a plugin that i created ~~(Mostly CopilotAI)~~. Because i needed a custom menu for giving custom weapons easily (instead of having to type the command each time).
+This is a plugin that i created because i needed a custom menu for giving custom weapons easily (instead of having to type the command each time).
 This is my 2nd plugin ever created (1st one already existed) ~~so any suggestions, helping is appreciated~~ (I have almost 0 coding experience (Enough for this i guess))
 
 Basic Installition (For fast install and no editing code)
