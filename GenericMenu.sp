@@ -1,3 +1,6 @@
+#pragma newdecls required
+#pragma semicolon 1
+
 #define PLUGIN_DEBUG                    					"0" // Debug to console, 1 = on, 0 = off
 #define PLUGIN_CONVAR_DEBUG             					"sm_genericmenu_debug" // ConVar name for debugging
 //#define CONFIG_PATH_CREATE		    					"configs/menu_items.cfg"	// Place where automaticly config file gets created if not exists, combined into MENU_CONFIG_TITLE_FILE
@@ -17,22 +20,22 @@
 #define MENU_CONVAR_ADMIN_REQUIRE_LEVEL 					ADMFLAG_ROOT // Admin flag required to use the menu if MENU_ADMIN_REQUIRE == 1, no quotes ("")
 
 
-public Plugin:myinfo =
+public Plugin myinfo =
 {
 	name = "[TF2] Generic Menu",
 	author = "well",
 	description = "Creates a menu for easy command access",
-	version = "1.7",
+	version = "1.8",
 	//url = ""
 };
 
-new String:g_itemNames[MAXPLAYERS + 1][1000][64]; 
-new Handle:g_hConVarDebug;
-new Handle:g_hKvMenuItems;
-new Handle:g_hConVarMenuEnabled;
-new Handle:g_hConVarMenuAccess;
+char g_itemNames[MAXPLAYERS + 1][1000][64]; 
+Handle g_hConVarDebug;
+Handle g_hKvMenuItems;
+Handle g_hConVarMenuEnabled;
+Handle g_hConVarMenuAccess;
 
-public OnPluginStart()	// Autoexec go brrr
+public void OnPluginStart()	// Autoexec go brrr
 {
     g_hConVarMenuEnabled = CreateConVar(MENU_CONVAR_ONOFF, MENU_ENABLED_DEFAULT, MENU_CONVAR_DESCRIPTION , FCVAR_NONE, true, 0.0, true, 1.0);
     g_hConVarDebug = CreateConVar(PLUGIN_CONVAR_DEBUG, PLUGIN_DEBUG, "Enable or Disable Debug output to console", FCVAR_NONE, true, 0.0, true, 1.0);
@@ -48,7 +51,7 @@ public OnPluginStart()	// Autoexec go brrr
     }
 }
 
-public Action:MenuCommand(client, args)	// IF cvar = 1, work. Else = no work
+public Action MenuCommand(int client, int args)	// IF cvar = 1, work. Else = no work
 {
     if (GetConVarInt(g_hConVarMenuAccess) == 1) // If admin only, do below
     {
@@ -86,35 +89,35 @@ public Action:MenuCommand(client, args)	// IF cvar = 1, work. Else = no work
     else    // If not admin only, do below
     {
         if (client == 0)
+        {
+            PrintToServer("[SM] This command is only available to in-game players.");
+        }
+        else
+        {
+            if (GetConVarInt(g_hConVarMenuEnabled) == 1)    // IF 1, do below
             {
-                PrintToServer("[SM] This command is only available to in-game players.");
+                ShowMenu(client);
+                if (GetConVarInt(g_hConVarDebug) == 1) // Debug to console
+                {
+                    PrintToServer("[SM] GenericMenu.smx MenuCommand == 1 check");
+                }
             }
-            else
+            else        //If other than 1, do below
             {
-                if (GetConVarInt(g_hConVarMenuEnabled) == 1)    // IF 1, do below
+                PrintToChat(client, MENU_DISABLED_OUTPUT);   // Reply to client privately
+                if (GetConVarInt(g_hConVarDebug) == 1) // Debug to console
                 {
-                    ShowMenu(client);
-                    if (GetConVarInt(g_hConVarDebug) == 1) // Debug to console
-                    {
-                        PrintToServer("[SM] GenericMenu.smx MenuCommand == 1 check");
-                    }
+                    PrintToServer("[SM] GenericMenu.smx MenuCommand =/= 1 check");
                 }
-                else        //If other than 1, do below
-                {
-                    PrintToChat(client, MENU_DISABLED_OUTPUT);   // Reply to client privately
-                    if (GetConVarInt(g_hConVarDebug) == 1) // Debug to console
-                    {
-                        PrintToServer("[SM] GenericMenu.smx MenuCommand =/= 1 check");
-                    }
-                }
-            }        
+            }
+        }        
     }
     return Plugin_Handled;
 }
 
 
 
-public Action:ReloadCommand(client, args)	//Reload command funciton
+public Action ReloadCommand(int client, int args)	//Reload command funciton
 {
 	LoadMenuItems();	//Reloads the config
     ServerCommand(MENU_CONFIG_RELOAD_OUTPUT);	//Output after reloading
@@ -125,17 +128,17 @@ public Action:ReloadCommand(client, args)	//Reload command funciton
 	return Plugin_Handled;	// Removes Unkown command output
 }
 
-public ShowMenu(client)	//Shows menu
+public void ShowMenu(int client)	//Shows menu
 {
-    new Handle:hMenu = CreateMenu(MenuHandler);
+    Handle hMenu = CreateMenu(MenuHandler);
     SetMenuTitle(hMenu, MENU_OPEN_TITLE);	// Title shown ingame menu
     if (g_hKvMenuItems != INVALID_HANDLE)
     {
         KvRewind(g_hKvMenuItems);
-        new String:itemName[64];
-        new String:itemCommand[128];
+        char itemName[64];
+        char itemCommand[128];
         KvGotoFirstSubKey(g_hKvMenuItems); 
-        new i = 0;
+        int i = 0;
         do
         {
             KvGetString(g_hKvMenuItems, "name", itemName, sizeof(itemName));			// Config read name, put name in menu
@@ -146,7 +149,7 @@ public ShowMenu(client)	//Shows menu
         } while (KvGotoNextKey(g_hKvMenuItems, false)); 
         if (GetConVarInt(g_hConVarDebug) == 1) // Debug to console
         {
-            PrintToServer("[SM] GenericMenu.smx ShowMenu check")
+            PrintToServer("[SM] GenericMenu.smx ShowMenu check");
         }
     }
     else
@@ -157,16 +160,16 @@ public ShowMenu(client)	//Shows menu
     DisplayMenu(hMenu, client, 0);
 }
 
-public MenuHandler(Handle:menu, MenuAction:action, param1, param2)	// Stuff that happens when you use a menu item
+public void MenuHandler(Handle menu, MenuAction action, int param1, int param2)	// Stuff that happens when you use a menu item
 {
     switch (action)
     {
         case MenuAction_Select:
         {
-            new String:itemCommand[128];
+            char itemCommand[128];
             GetMenuItem(menu, param2, itemCommand, sizeof(itemCommand));
-            new String:command[256];
-            new String:itemName[64];
+            char command[256];
+            char itemName[64];
             strcopy(itemName, sizeof(itemName), g_itemNames[param1][param2]); // Function to replace 1st %s with command, 2nd %s with the menu item name
             Format(command, sizeof(command), "[SM]User %%n has redeemed %s with %s", itemName, itemCommand); 
             ReplaceVariables(itemCommand, sizeof(itemCommand), param1);
@@ -176,7 +179,7 @@ public MenuHandler(Handle:menu, MenuAction:action, param1, param2)	// Stuff that
         
             if (GetConVarInt(g_hConVarDebug) == 1) // Debug to console
             {
-                PrintToServer("[SM] GenericMenu.smx MenuAction_Select check")
+                PrintToServer("[SM] GenericMenu.smx MenuAction_Select check");
             }
         }
         case MenuAction_End:
@@ -184,17 +187,17 @@ public MenuHandler(Handle:menu, MenuAction:action, param1, param2)	// Stuff that
             CloseHandle(menu);	// Slot10 to close the menu
             if (GetConVarInt(g_hConVarDebug) == 1) // Debug to console
             {
-                PrintToServer("[SM] GenericMenu.smx MenuAction_End check")
+                PrintToServer("[SM] GenericMenu.smx MenuAction_End check");
             }
         }
     }
 }
 
-public LoadMenuItems()
+public void LoadMenuItems()
 {
     g_hKvMenuItems = CreateKeyValues(MENU_CONFIG_TITLE_INTERNAL);
-    new String:pathsmconfigs[] = "configs/";
-    new String:configPath[PLATFORM_MAX_PATH];
+    char pathsmconfigs[] = "configs/";
+    char configPath[PLATFORM_MAX_PATH];
     BuildPath(Path_SM, configPath, sizeof(configPath), "%s%s", pathsmconfigs, MENU_CONFIG_TITLE_FILE);
 
     if (GetConVarInt(g_hConVarDebug) == 1) // Debug to console
@@ -221,10 +224,10 @@ public LoadMenuItems()
 }
 
 //Replace %u and %n with UserID and Username respectively in the config file
-public ReplaceVariables(String:output[], maxlength, client)
+public void ReplaceVariables(char[] output, int maxlength, int client)
 {
-    new String:sBuffer[32];
-    new String:clientName[64];
+    char sBuffer[32];
+    char clientName[64];
 
     // Replace %u with user ID
     IntToString(GetClientUserId(client), sBuffer, sizeof(sBuffer));
@@ -241,15 +244,15 @@ public ReplaceVariables(String:output[], maxlength, client)
 
 //Automatic creation of config file in /tf/addons/sourcemod/configs if dont already have
 //Self sufficent debug
-public CreateDefaultMenuConfig()
+public void CreateDefaultMenuConfig()
 {
-    new String:configPath[PLATFORM_MAX_PATH];
-    new String:pathsmconfigs[] = "configs/";
+    char configPath[PLATFORM_MAX_PATH];
+    char pathsmconfigs[] = "configs/";
     BuildPath(Path_SM, configPath, sizeof(configPath), "%s%s", pathsmconfigs, MENU_CONFIG_TITLE_FILE); // Path to create file in addons/sourcemod/
 
     if (!FileExists(configPath)) 
     {
-        new Handle:hFile = OpenFile(configPath, "w");
+        Handle hFile = OpenFile(configPath, "w");
         if (hFile != INVALID_HANDLE)
         {
             WriteFileLine(hFile, "\"%s\"", MENU_CONFIG_TITLE_INTERNAL);
